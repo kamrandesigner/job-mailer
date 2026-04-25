@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JobMailer — Bulk Email Sender</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #08090d;
+      --bg2: #0e1117;
+      --bg3: #161b26;
+      --bg4: #1e2536;
+      --surface: #141924;
+      --border: #222d40;
+      --border-h: #334155;
+      --text: #e2e8f0;
+      --text2: #8b9dc3;
+      --text3: #4f6085;
+      --accent: #2563eb;
+      --accent2: #60a5fa;
+      --accent-bg: rgba(37,99,235,0.08);
+      --accent-border: rgba(37,99,235,0.25);
+      --green: #10b981;
+      --green-bg: rgba(16,185,129,0.08);
+      --green-border: rgba(16,185,129,0.25);
+      --red: #ef4444;
+      --red-bg: rgba(239,68,68,0.08);
+      --red-border: rgba(239,68,68,0.25);
+      --amber: #f59e0b;
+      --amber-bg: rgba(245,158,11,0.08);
+      --amber-border: rgba(245,158,11,0.25);
+      --violet: #8b5cf6;
+      --violet-bg: rgba(139,92,246,0.08);
+      --violet-border: rgba(139,92,246,0.25);
+      --radius: 10px;
+      --radius-sm: 7px;
+      --font: 'DM Sans', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+
+    /* ═══ Layout ═══ */
+    .app { display: flex; height: 100vh; }
+
+    .sidebar {
+      width: 230px; min-width: 230px;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+    }
+
+    .brand {
+      padding: 22px 18px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand h1 {
+      font-size: 17px; font-weight: 700;
+      display: flex; align-items: center; gap: 9px;
+    }
+    .brand h1 svg { color: var(--accent2); }
+    .brand-gradient {
+      background: linear-gradient(135deg, var(--accent2), var(--violet));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .brand-sub {
+      font-size: 10px; color: var(--text3);
+      font-family: var(--mono); letter-spacing: 1.5px;
+      text-transform: uppercase; margin-top: 3px;
+    }
+
+    .nav { padding: 14px 10px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 11px;
+      padding: 10px 13px; border-radius: var(--radius-sm);
+      cursor: pointer; font-size: 13px; font-weight: 500;
+      color: var(--text2); border: 1px solid transparent;
+      transition: all .12s;
+    }
+    .nav-item:hover { background: var(--bg3); color: var(--text); }
+    .nav-item.active {
+      background: var(--accent-bg); color: var(--accent2);
+      border-color: var(--accent-border);
+    }
+    .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .nav-badge {
+      margin-left: auto;
+      background: var(--accent); color: #fff;
+      font-size: 10px; font-weight: 700;
+      padding: 1px 7px; border-radius: 9px;
+      font-family: var(--mono);
+    }
+
+    .sidebar-footer {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; color: var(--text3);
+    }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--red);
+      flex-shrink: 0;
+    }
+    .dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+    /* ═══ Main ═══ */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .topbar {
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--bg2);
+    }
+    .topbar h2 { font-size: 18px; font-weight: 600; letter-spacing: -.3px; }
+
+    .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+    /* ═══ Components ═══ */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px; margin-bottom: 18px;
+    }
+    .card-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 18px;
+    }
+    .card-title {
+      font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; gap: 9px;
+    }
+    .card-title svg { width: 18px; height: 18px; color: var(--accent2); }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 16px; border-radius: var(--radius-sm);
+      font-size: 12.5px; font-weight: 600; font-family: var(--font);
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); cursor: pointer; transition: all .12s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--bg3); border-color: var(--border-h); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn svg { width: 15px; height: 15px; }
+
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-danger { background: var(--red-bg); border-color: var(--red-border); color: var(--red); }
+    .btn-danger:hover { background: rgba(239,68,68,.14); }
+    .btn-sm { padding: 5px 11px; font-size: 11.5px; }
+    .btn-ghost { background: transparent; border-color: transparent; }
+    .btn-ghost:hover { background: var(--bg3); }
+
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block; font-size: 10.5px; font-weight: 600;
+      color: var(--text3); margin-bottom: 5px;
+      text-transform: uppercase; letter-spacing: .6px;
+      font-family: var(--mono);
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 9px 13px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-size: 13px; font-family: var(--font);
+      transition: border .12s; outline: none;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-bg);
+    }
+    .form-textarea { resize: vertical; min-height: 140px; line-height: 1.65; }
+    .form-select { cursor: pointer; appearance: none; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 9px; border-radius: 10px;
+      font-size: 10.5px; font-weight: 600;
+    }
+    .tag-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+    .tag-red { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+    .tag-amber { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+    .tag-blue { background: var(--accent-bg); color: var(--accent2); border: 1px solid var(--accent-border); }
+    .tag-violet { background: var(--violet-bg); color: var(--violet); border: 1px solid var(--violet-border); }
+
+    /* SMTP Presets */
+    .presets { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+    .preset {
+      padding: 7px 15px; border-radius: 18px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--text2); transition: all .12s;
+    }
+    .preset:hover { border-color: var(--border-h); }
+    .preset.active { color: #fff; }
+
+    /* Upload */
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: var(--radius);
+      padding: 44px 20px; text-align: center; cursor: pointer;
+      transition: all .15s; background: var(--bg);
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: var(--accent-bg); }
+    .upload-icon {
+      margin: 0 auto 14px; width: 52px; height: 52px; border-radius: 50%;
+      background: var(--accent-bg); display: flex; align-items: center;
+      justify-content: center; color: var(--accent);
+    }
+    .upload-zone h3 { font-size: 14px; margin-bottom: 4px; }
+    .upload-zone p { font-size: 12px; color: var(--text3); }
+
+    /* Table */
+    .tbl-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+    .tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .tbl th {
+      background: var(--bg3); padding: 9px 13px; text-align: left;
+      font-weight: 600; font-size: 10px; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--text3); font-family: var(--mono);
+      white-space: nowrap; position: sticky; top: 0;
+    }
+    .tbl td {
+      padding: 8px 13px; border-top: 1px solid var(--border);
+      max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .tbl tr:hover td { background: rgba(255,255,255,.02); }
+
+    .cb {
+      width: 16px; height: 16px; border: 2px solid var(--border-h);
+      border-radius: 4px; cursor: pointer; display: inline-flex;
+      align-items: center; justify-content: center;
+      transition: all .12s; background: transparent; flex-shrink: 0;
+    }
+    .cb.on { background: var(--accent); border-color: var(--accent); }
+
+    /* Templates */
+    .tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .tpl-card {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; cursor: pointer;
+      transition: all .12s;
+    }
+    .tpl-card:hover { border-color: var(--border-h); }
+    .tpl-card.active { border-color: var(--accent); background: var(--accent-bg); }
+    .tpl-card h4 { font-size: 13px; margin-bottom: 4px; }
+    .tpl-card p {
+      font-size: 11.5px; color: var(--text3); line-height: 1.5;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+    .stat {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+    }
+    .stat-label {
+      font-size: 10px; text-transform: uppercase; letter-spacing: .6px;
+      color: var(--text3); font-family: var(--mono); margin-bottom: 6px;
+    }
+    .stat-val { font-size: 26px; font-weight: 700; letter-spacing: -1px; }
+
+    /* Progress */
+    .prog-wrap { height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; margin: 10px 0; }
+    .prog-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--violet)); border-radius: 3px; transition: width .3s; }
+
+    /* Log */
+    .log {
+      max-height: 320px; overflow-y: auto;
+      font-family: var(--mono); font-size: 11px;
+      background: var(--bg); border-radius: var(--radius-sm);
+      padding: 12px; border: 1px solid var(--border);
+    }
+    .log-row { padding: 3px 0; display: flex; gap: 10px; }
+    .log-time { color: var(--text3); min-width: 70px; }
+    .log-row.ok .log-msg { color: var(--green); }
+    .log-row.err .log-msg { color: var(--red); }
+    .log-row.info .log-msg { color: var(--text2); }
+
+    /* Preview */
+    .preview {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px;
+    }
+    .preview-subj {
+      font-size: 15px; font-weight: 600; margin-bottom: 10px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    }
+    .preview-body { white-space: pre-wrap; font-size: 13px; line-height: 1.7; color: var(--text2); }
+
+    /* Variable chips */
+    .vars { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+    .var-chip {
+      padding: 3px 9px; background: var(--violet-bg);
+      border: 1px solid var(--violet-border); border-radius: 5px;
+      font-size: 10.5px; font-family: var(--mono); color: var(--violet);
+      cursor: pointer; transition: all .12s;
+    }
+    .var-chip:hover { background: rgba(139,92,246,.15); }
+
+    /* Alert box */
+    .alert-box {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 16px; background: var(--bg);
+      border-radius: var(--radius-sm); border: 1px solid var(--border);
+      margin-bottom: 10px; font-size: 12.5px;
+    }
+    .alert-box svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .alert-box.err { border-color: var(--red-border); color: var(--red); }
+    .alert-box.warn { border-color: var(--amber-border); color: var(--amber); }
+    .alert-box.ok { border-color: var(--green-border); color: var(--green); }
+
+    /* Modal */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55); backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; animation: fadeIn .12s;
+    }
+    .modal {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); width: 540px; max-height: 82vh;
+      overflow-y: auto; padding: 24px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.4); animation: slideUp .18s;
+    }
+    .modal h3 { font-size: 16px; margin-bottom: 18px; }
+
+    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
+
+    /* Delay config */
+    .delay-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; background: var(--bg);
+      border-radius: var(--radius-sm); border: 1px solid var(--border);
+    }
+    .delay-row label { font-size: 12px; font-weight: 600; color: var(--text2); white-space: nowrap; }
+    .delay-row input {
+      width: 60px; padding: 5px 8px; background: var(--bg2);
+      border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text); font-size: 13px; font-family: var(--font);
+      outline: none; text-align: center;
+    }
+    .delay-row input:focus { border-color: var(--accent); }
+    .delay-row .hint { font-size: 10.5px; color: var(--text3); }
+
+    /* Attachment */
+    .att-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; background: var(--bg);
+      border-radius: var(--radius-sm); border: 1px solid var(--border);
+      font-size: 12px; margin-top: 8px;
+    }
+    .att-row .att-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Toast */
+    .toasts { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 7px; }
+    .toast {
+      padding: 10px 18px; border-radius: var(--radius-sm);
+      font-size: 12.5px; font-weight: 500; animation: slideUp .15s;
+      box-shadow: 0 4px 20px rgba(0,0,0,.3);
+      display: flex; align-items: center; gap: 9px;
+    }
+    .toast svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .toast-ok { background: var(--green-bg); border: 1px solid var(--green-border); color: var(--green); }
+    .toast-err { background: var(--red-bg); border: 1px solid var(--red-border); color: var(--red); }
+    .toast-info { background: var(--accent-bg); border: 1px solid var(--accent-border); color: var(--accent2); }
+
+    .empty { text-align: center; padding: 50px 20px; color: var(--text3); }
+    .empty h3 { font-size: 15px; color: var(--text2); margin-bottom: 6px; }
+    .empty p { font-size: 12.5px; max-width: 380px; margin: 0 auto; line-height: 1.6; }
+
+    .help-tip {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--bg3); color: var(--text3);
+      font-size: 9px; font-weight: 700; cursor: help; margin-left: 5px;
+    }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 60px; min-width: 60px; }
+      .brand h1 span, .brand-sub, .nav-item span, .nav-badge, .sidebar-footer span { display: none; }
+      .nav-item { justify-content: center; padding: 10px; }
+      .brand { padding: 16px 12px; justify-content: center; display: flex; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .content { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="brand">
+      <h1>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+        <span class="brand-gradient">JobMailer</span>
+      </h1>
+      <p class="brand-sub">Bulk Email Sender</p>
+    </div>
+    <div class="nav">
+      <div class="nav-item active" data-tab="setup" onclick="switchTab('setup')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.32 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Mail Setup</span>
+      </div>
+      <div class="nav-item" data-tab="contacts" onclick="switchTab('contacts')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Contacts</span>
+        <span class="nav-badge hidden" id="contactBadge">0</span>
+      </div>
+      <div class="nav-item" data-tab="templates" onclick="switchTab('templates')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <span>Templates</span>
+      </div>
+      <div class="nav-item" data-tab="send" onclick="switchTab('send')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+        <span>Send</span>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">Not connected</span>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <h2 id="pageTitle">Mail Setup</h2>
+      <div id="topActions"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toasts" id="toasts"></div>
+
+<!-- Templates data store -->
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════
+const API = '';  // same origin
+
+const state = {
+  tab: 'setup',
+  smtp: { host:'', port:'587', encryption:'TLS', email:'', password:'', fromName:'', preset:'' },
+  connected: false,
+  contacts: [],
+  columns: [],
+  emailColumn: '',
+  selected: new Set(),
+  templates: [
+    {
+      id:'t1', name:'Cold Application',
+      subject:'Application for {{position}} — {{yourName}}',
+      body:'Dear {{recipientName}},\n\nI hope this message finds you well. I am writing to express my strong interest in the {{position}} role at {{company}}.\n\nWith {{experience}} of experience in {{skills}}, I am confident I can contribute meaningfully to your team. My background includes {{highlights}}.\n\nI have attached my resume for your review and would welcome the opportunity to discuss how my skills align with your needs.\n\nThank you for your time and consideration.\n\nBest regards,\n{{yourName}}\n{{yourEmail}}\n{{yourPhone}}'
+    },
+    {
+      id:'t2', name:'Referral Follow-up',
+      subject:'Referred by {{referrer}} — {{position}} Interest',
+      body:'Dear {{recipientName}},\n\n{{referrer}} suggested I reach out regarding the {{position}} opening at {{company}}. Having heard great things about your team\'s work, I\'m excited about the possibility of contributing.\n\nMy experience in {{skills}} has prepared me well for this role. I\'d love the chance to discuss how I can add value.\n\nI\'ve attached my resume for your consideration.\n\nWarm regards,\n{{yourName}}'
+    },
+    {
+      id:'t3', name:'Networking Introduction',
+      subject:'Quick Introduction — {{yourName}}, {{yourTitle}}',
+      body:'Hi {{recipientName}},\n\nI\'m {{yourName}}, a {{yourTitle}} with a passion for {{industry}}. I came across {{company}} and was impressed by your work in {{companyFocus}}.\n\nI\'d love to connect briefly to learn more about your team and explore any potential opportunities. Would you have 15 minutes for a quick chat?\n\nThanks so much,\n{{yourName}}'
+    }
+  ],
+  activeTemplate: null,
+  variables: {},
+  delaySeconds: 5,
+  sending: { active:false, progress:0, total:0, sent:0, failed:0, logs:[] },
+  attachments: [],
+};
+
+const PRESETS = {
+  gmail:   { host:'smtp.gmail.com',       port:'587', encryption:'TLS', label:'Gmail',    color:'#EA4335' },
+  outlook: { host:'smtp.office365.com',    port:'587', encryption:'TLS', label:'Outlook',  color:'#0078D4' },
+  yahoo:   { host:'smtp.mail.yahoo.com',   port:'465', encryption:'SSL', label:'Yahoo',    color:'#6001D2' },
+  zoho:    { host:'smtp.zoho.com',         port:'587', encryption:'TLS', label:'Zoho',     color:'#E8403A' },
+  custom:  { host:'',                      port:'587', encryption:'TLS', label:'Custom',   color:'#64748b' },
+};
+
+const titles = { setup:'Mail Setup', contacts:'Contacts', templates:'Templates', send:'Send Emails' };
+
+// ═══════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+function toast(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type==='success'?'ok':type==='error'?'err':'info'}`;
+  const icons = {
+    success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>',
+    error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 10 10-12h-9l1-10z"/></svg>'
+  };
+  el.innerHTML = `${icons[type]||icons.info} ${msg}`;
+  $('#toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function fillTemplate(text, data) {
+  if (!text) return '';
+  return text.replace(/\{\{(\w+)\}\}/g, (m, k) => {
+    if (data[k] !== undefined && data[k] !== '') return data[k];
+    if (state.variables[k] !== undefined && state.variables[k] !== '') return state.variables[k];
+    return m;
+  });
+}
+
+function getVars(text) {
+  const m = text.match(/\{\{(\w+)\}\}/g);
+  return m ? [...new Set(m.map(v => v.replace(/[{}]/g,'')))] : [];
+}
+
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function updateStatus() {
+  const dot = $('#statusDot');
+  const txt = $('#statusText');
+  if (state.connected) {
+    dot.classList.add('on');
+    txt.textContent = state.smtp.email;
+  } else {
+    dot.classList.remove('on');
+    txt.textContent = 'Not connected';
+  }
+  const badge = $('#contactBadge');
+  if (state.contacts.length > 0) {
+    badge.textContent = state.contacts.length;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  state.tab = tab;
+  $$('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.tab === tab));
+  $('#pageTitle').textContent = titles[tab];
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════════
+function render() {
+  const c = $('#content');
+  const actions = $('#topActions');
+  actions.innerHTML = '';
+  updateStatus();
+
+  switch(state.tab) {
+    case 'setup':    renderSetup(c); break;
+    case 'contacts': renderContacts(c, actions); break;
+    case 'templates':renderTemplates(c); break;
+    case 'send':     renderSend(c); break;
+  }
+}
+
+// ─── Setup ───────────────────────────────────────────────────────────
+function renderSetup(c) {
+  const s = state.smtp;
+  c.innerHTML = `
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          SMTP Configuration
+        </div>
+        ${state.connected ? '<span class="tag tag-green">✓ Connected</span>' : ''}
+      </div>
+
+      <div class="presets" id="presets">
+        ${Object.entries(PRESETS).map(([k,p]) => `
+          <div class="preset ${s.preset===k?'active':''}" data-key="${k}"
+               style="${s.preset===k?`background:${p.color};border-color:${p.color}`:''}">${p.label}</div>
+        `).join('')}
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">SMTP Host</label>
+          <input class="form-input" id="smtpHost" placeholder="smtp.example.com" value="${esc(s.host)}">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Port</label>
+            <input class="form-input" id="smtpPort" placeholder="587" value="${esc(s.port)}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Encryption</label>
+            <select class="form-select" id="smtpEnc">
+              <option value="TLS" ${s.encryption==='TLS'?'selected':''}>TLS</option>
+              <option value="SSL" ${s.encryption==='SSL'?'selected':''}>SSL</option>
+              <option value="None" ${s.encryption==='None'?'selected':''}>None</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Display Name (From)</label>
+        <input class="form-input" id="smtpName" placeholder="John Doe" value="${esc(s.fromName)}">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input class="form-input" type="email" id="smtpEmail" placeholder="you@example.com" value="${esc(s.email)}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password / App Password <span class="help-tip" title="For Gmail, use an App Password from Google Account → Security → App Passwords">?</span></label>
+          <input class="form-input" type="password" id="smtpPass" placeholder="••••••••" value="${esc(s.password)}">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="btn btn-primary" id="btnConnect">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 10 10-12h-9l1-10z"/></svg>
+          ${state.connected ? 'Update Connection' : 'Connect & Verify'}
+        </button>
+        ${state.connected ? '<button class="btn btn-danger" id="btnDisconnect">✕ Disconnect</button>' : ''}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Sending Settings
+        </div>
+      </div>
+      <div class="delay-row">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <label>Delay between emails:</label>
+        <input type="number" id="delayInput" min="1" max="120" value="${state.delaySeconds}">
+        <span class="hint">seconds (recommended: 5–15s to avoid spam filters)</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+          Resume / Attachment
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:12px">Attach files that will be sent with every email (e.g. your resume/CV)</p>
+      <input type="file" id="attachInput" multiple hidden>
+      <button class="btn btn-sm" onclick="document.getElementById('attachInput').click()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        Add Attachment
+      </button>
+      <div id="attachList"></div>
+    </div>
+  `;
+
+  // Event listeners
+  $$('#presets .preset').forEach(el => {
+    el.onclick = () => {
+      const k = el.dataset.key;
+      const p = PRESETS[k];
+      state.smtp = { ...state.smtp, preset:k, host:p.host, port:p.port, encryption:p.encryption };
+      renderSetup(c);
+    };
+  });
+
+  const syncFields = () => {
+    state.smtp.host = $('#smtpHost').value;
+    state.smtp.port = $('#smtpPort').value;
+    state.smtp.encryption = $('#smtpEnc').value;
+    state.smtp.fromName = $('#smtpName').value;
+    state.smtp.email = $('#smtpEmail').value;
+    state.smtp.password = $('#smtpPass').value;
+  };
+
+  $('#btnConnect').onclick = async () => {
+    syncFields();
+    const btn = $('#btnConnect');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Connecting...';
+    try {
+      const res = await fetch(`${API}/api/smtp/connect`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(state.smtp)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        state.connected = true;
+        toast('SMTP connected and verified!', 'success');
+      } else {
+        toast(data.details || data.error, 'error');
+        if (data.hint) setTimeout(() => toast(data.hint, 'info'), 500);
+      }
+    } catch(e) {
+      toast('Network error: ' + e.message, 'error');
+    }
+    renderSetup(c);
+  };
+
+  if ($('#btnDisconnect')) {
+    $('#btnDisconnect').onclick = async () => {
+      await fetch(`${API}/api/smtp/disconnect`, { method:'POST' });
+      state.connected = false;
+      toast('SMTP disconnected', 'info');
+      renderSetup(c);
+    };
+  }
+
+  $('#delayInput').onchange = (e) => {
+    state.delaySeconds = Math.max(1, parseInt(e.target.value) || 5);
+  };
+
+  $('#attachInput').onchange = (e) => {
+    Array.from(e.target.files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        state.attachments.push({
+          filename: file.name,
+          content: ev.target.result.split(',')[1],
+          size: file.size
+        });
+        renderAttachments();
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  renderAttachments();
+}
+
+function renderAttachments() {
+  const list = $('#attachList');
+  if (!list) return;
+  list.innerHTML = state.attachments.map((a, i) => `
+    <div class="att-row">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      <span class="att-name">${esc(a.filename)}</span>
+      <span style="font-size:10px;color:var(--text3)">${(a.size/1024).toFixed(1)} KB</span>
+      <button class="btn btn-ghost btn-sm" onclick="removeAttach(${i})" style="padding:3px 6px">✕</button>
+    </div>
+  `).join('');
+}
+
+function removeAttach(i) {
+  state.attachments.splice(i, 1);
+  renderAttachments();
+}
+
+// ─── Contacts ────────────────────────────────────────────────────────
+function renderContacts(c, actions) {
+  if (state.contacts.length > 0) {
+    actions.innerHTML = `<button class="btn btn-sm" onclick="document.getElementById('fileUpload2').click()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+      Upload More
+    </button>
+    <input type="file" id="fileUpload2" accept=".xlsx,.xls,.csv" hidden onchange="handleFileUpload(this.files[0])">`;
+  }
+
+  c.innerHTML = `
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+          Import Contacts
+        </div>
+        ${state.contacts.length > 0 ? '<button class="btn btn-danger btn-sm" onclick="clearContacts()">✕ Clear All</button>' : ''}
+      </div>
+      <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileUpload').click()">
+        <div class="upload-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        </div>
+        <h3>Drop your Excel / CSV file here</h3>
+        <p>Supports .xlsx, .xls, .csv — File must have an "email" column</p>
+      </div>
+      <input type="file" id="fileUpload" accept=".xlsx,.xls,.csv" hidden onchange="handleFileUpload(this.files[0])">
+    </div>
+    <div id="contactTable"></div>
+  `;
+
+  // Drag & drop
+  const dz = $('#dropZone');
+  dz.ondragover = e => { e.preventDefault(); dz.classList.add('drag'); };
+  dz.ondragleave = () => dz.classList.remove('drag');
+  dz.ondrop = e => { e.preventDefault(); dz.classList.remove('drag'); handleFileUpload(e.dataTransfer.files[0]); };
+
+  if (state.contacts.length > 0) renderContactTable();
+}
+
+async function handleFileUpload(file) {
+  if (!file) return;
+  const form = new FormData();
+  form.append('file', file);
+
+  toast('Uploading and parsing file...', 'info');
+
+  try {
+    const res = await fetch(`${API}/api/contacts/upload`, { method:'POST', body:form });
+    const data = await res.json();
+    if (res.ok) {
+      state.contacts = data.contacts;
+      state.columns = data.columns;
+      state.emailColumn = data.emailColumn;
+      state.selected = new Set(data.contacts.map(c => c._id));
+      toast(`Loaded ${data.validContacts} contacts` + (data.invalidSkipped > 0 ? ` (${data.invalidSkipped} invalid skipped)` : ''), 'success');
+      render();
+    } else {
+      toast(data.error, 'error');
+    }
+  } catch(e) {
+    toast('Upload failed: ' + e.message, 'error');
+  }
+}
+
+function clearContacts() {
+  state.contacts = [];
+  state.columns = [];
+  state.selected = new Set();
+  render();
+}
+
+function renderContactTable() {
+  const ct = $('#contactTable');
+  if (!ct || state.contacts.length === 0) return;
+  const cols = state.columns;
+  const show = state.contacts.slice(0, 100);
+
+  ct.innerHTML = `
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          ${state.contacts.length} Contacts
+          <span class="tag tag-blue">${state.selected.size} selected</span>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr>
+            <th style="width:40px;text-align:center">
+              <div class="cb ${state.selected.size===state.contacts.length?'on':''}" onclick="toggleAll()">
+                ${state.selected.size===state.contacts.length?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>':''}
+              </div>
+            </th>
+            ${cols.map(col => `<th>${esc(col)}</th>`).join('')}
+          </tr></thead>
+          <tbody>
+            ${show.map(row => `
+              <tr>
+                <td style="text-align:center">
+                  <div class="cb ${state.selected.has(row._id)?'on':''}" onclick="toggleOne('${row._id}')">
+                    ${state.selected.has(row._id)?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>':''}
+                  </div>
+                </td>
+                ${cols.map(col => `<td title="${esc(String(row[col]||''))}">${esc(String(row[col]||''))}</td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${state.contacts.length > 100 ? `<p style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center">Showing first 100 of ${state.contacts.length} contacts</p>` : ''}
+    </div>
+  `;
+}
+
+function toggleAll() {
+  if (state.selected.size === state.contacts.length) {
+    state.selected = new Set();
+  } else {
+    state.selected = new Set(state.contacts.map(c => c._id));
+  }
+  renderContactTable();
+  updateStatus();
+}
+
+function toggleOne(id) {
+  if (state.selected.has(id)) state.selected.delete(id); else state.selected.add(id);
+  renderContactTable();
+  updateStatus();
+}
+
+// ─── Templates ───────────────────────────────────────────────────────
+function renderTemplates(c) {
+  const tpl = state.templates.find(t => t.id === state.activeTemplate);
+  const allVars = tpl ? [...new Set([...getVars(tpl.subject), ...getVars(tpl.body)])] : [];
+  const customVars = allVars.filter(v => !state.columns.includes(v));
+
+  c.innerHTML = `
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Email Templates
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openTemplateModal()">+ New Template</button>
+      </div>
+      <div class="tpl-grid">
+        ${state.templates.map(t => `
+          <div class="tpl-card ${state.activeTemplate===t.id?'active':''}" onclick="selectTemplate('${t.id}')">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <h4>${esc(t.name)}</h4>
+              <div style="display:flex;gap:3px">
+                <button class="btn btn-ghost btn-sm" style="padding:3px" onclick="event.stopPropagation();editTemplate('${t.id}')">✎</button>
+                <button class="btn btn-ghost btn-sm" style="padding:3px" onclick="event.stopPropagation();deleteTemplate('${t.id}')">✕</button>
+              </div>
+            </div>
+            <p>${esc(t.subject)}</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    ${tpl ? `
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            Preview: ${esc(tpl.name)}
+          </div>
+          <button class="btn btn-sm" onclick="sendTestEmail()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+            Send Test
+          </button>
+        </div>
+
+        ${customVars.length > 0 ? `
+          <div style="margin-bottom:18px">
+            <label class="form-label">Set Global Variables</label>
+            <div class="form-row" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
+              ${customVars.map(v => `
+                <div class="form-group" style="margin-bottom:6px">
+                  <label style="font-size:10px;color:var(--text3);font-family:var(--mono)">{{${v}}}</label>
+                  <input class="form-input" data-var="${v}" placeholder="${v}" value="${esc(state.variables[v]||'')}" style="margin-top:3px" oninput="state.variables['${v}']=this.value;updatePreview()">
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="preview" id="previewBox">
+          <div class="preview-subj">Subject: ${esc(fillTemplate(tpl.subject, state.contacts[0]||{}))}</div>
+          <div class="preview-body">${esc(fillTemplate(tpl.body, state.contacts[0]||{}))}</div>
+        </div>
+        <div class="vars">
+          <span style="font-size:10.5px;color:var(--text3);align-self:center;margin-right:3px">Variables:</span>
+          ${allVars.map(v => `<span class="var-chip">{{${v}}}</span>`).join('')}
+        </div>
+      </div>
+    ` : ''}
+  `;
+}
+
+function selectTemplate(id) {
+  state.activeTemplate = id;
+  renderTemplates($('#content'));
+}
+
+function deleteTemplate(id) {
+  state.templates = state.templates.filter(t => t.id !== id);
+  if (state.activeTemplate === id) state.activeTemplate = null;
+  toast('Template deleted', 'info');
+  renderTemplates($('#content'));
+}
+
+function editTemplate(id) {
+  const t = state.templates.find(x => x.id === id);
+  openTemplateModal(t);
+}
+
+function updatePreview() {
+  const tpl = state.templates.find(t => t.id === state.activeTemplate);
+  if (!tpl) return;
+  const box = $('#previewBox');
+  if (!box) return;
+  box.innerHTML = `
+    <div class="preview-subj">Subject: ${esc(fillTemplate(tpl.subject, state.contacts[0]||{}))}</div>
+    <div class="preview-body">${esc(fillTemplate(tpl.body, state.contacts[0]||{}))}</div>
+  `;
+}
+
+function openTemplateModal(existing) {
+  const t = existing || { id:'', name:'', subject:'', body:'' };
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3>${t.id ? 'Edit Template' : 'New Template'}</h3>
+      <div class="form-group">
+        <label class="form-label">Template Name</label>
+        <input class="form-input" id="tplName" value="${esc(t.name)}" placeholder="e.g. Cold Application">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Subject Line</label>
+        <input class="form-input" id="tplSubject" value="${esc(t.subject)}" placeholder="Application for {{position}} — {{yourName}}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Body</label>
+        <textarea class="form-textarea" id="tplBody" rows="10" placeholder="Use {{variableName}} for dynamic content">${esc(t.body)}</textarea>
+      </div>
+      ${state.columns.length ? `
+        <div style="margin-bottom:14px">
+          <label class="form-label">Insert from spreadsheet columns</label>
+          <div class="vars">
+            ${state.columns.map(col => `<span class="var-chip" onclick="document.getElementById('tplBody').value+='{{${col}}}'"">{{${col}}}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" onclick="this.closest('.overlay').remove()">Cancel</button>
+        <button class="btn btn-primary" id="tplSave">✓ Save Template</button>
+      </div>
+    </div>
+  `;
+  overlay.onclick = () => overlay.remove();
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#tplSave').onclick = () => {
+    const name = overlay.querySelector('#tplName').value.trim();
+    const subject = overlay.querySelector('#tplSubject').value.trim();
+    const body = overlay.querySelector('#tplBody').value;
+    if (!name || !subject) { toast('Name and subject are required', 'error'); return; }
+    if (t.id) {
+      const idx = state.templates.findIndex(x => x.id === t.id);
+      state.templates[idx] = { ...t, name, subject, body };
+    } else {
+      state.templates.push({ id:'t'+Date.now(), name, subject, body });
+    }
+    overlay.remove();
+    toast('Template saved', 'success');
+    renderTemplates($('#content'));
+  };
+}
+
+async function sendTestEmail() {
+  const tpl = state.templates.find(t => t.id === state.activeTemplate);
+  if (!tpl) return;
+  if (!state.connected) { toast('Connect your SMTP first', 'error'); return; }
+
+  const to = prompt('Send test email to:');
+  if (!to) return;
+
+  try {
+    const res = await fetch(`${API}/api/email/test`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        to,
+        subject: fillTemplate(tpl.subject, state.contacts[0]||{}),
+        body: fillTemplate(tpl.body, state.contacts[0]||{})
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast(`Test email sent to ${to}!`, 'success');
+    } else {
+      toast(data.details || data.error, 'error');
+    }
+  } catch(e) {
+    toast('Failed: ' + e.message, 'error');
+  }
+}
+
+// ─── Send ────────────────────────────────────────────────────────────
+function renderSend(c) {
+  const s = state.sending;
+  const tpl = state.templates.find(t => t.id === state.activeTemplate);
+  const ready = state.connected && tpl && state.selected.size > 0;
+
+  c.innerHTML = `
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">SMTP Status</div>
+        <div class="stat-val" style="color:var(${state.connected?'--green':'--red'})">${state.connected?'Ready':'N/A'}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Selected</div>
+        <div class="stat-val" style="color:var(--accent2)">${state.selected.size}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Sent</div>
+        <div class="stat-val" style="color:var(--green)">${s.sent}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Failed</div>
+        <div class="stat-val" style="color:var(--red)">${s.failed}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+          Send Emails
+        </div>
+      </div>
+
+      ${!state.connected ? '<div class="alert-box err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> SMTP not connected — go to Mail Setup</div>' : ''}
+      ${!tpl ? '<div class="alert-box warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> No template selected — go to Templates</div>' : ''}
+      ${state.selected.size===0 ? '<div class="alert-box warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> No contacts selected — go to Contacts</div>' : ''}
+
+      ${ready ? `
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+          <button class="btn btn-primary" id="btnSend" ${s.active?'disabled':''}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+            ${s.active ? 'Sending...' : `Send to ${state.selected.size} contacts`}
+          </button>
+          <span style="font-size:11.5px;color:var(--text3)">
+            Template: <strong style="color:var(--text)">${esc(tpl.name)}</strong> ·
+            Delay: ${state.delaySeconds}s
+            ${state.attachments.length ? ` · ${state.attachments.length} attachment(s)` : ''}
+          </span>
+        </div>
+      ` : ''}
+
+      ${(s.active || s.logs.length > 0) ? `
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--text2);margin-bottom:3px">
+          <span>Progress: ${s.progress} / ${s.total}</span>
+          <span>${s.total > 0 ? Math.round(s.progress/s.total*100) : 0}%</span>
+        </div>
+        <div class="prog-wrap"><div class="prog-bar" style="width:${s.total>0?(s.progress/s.total*100):0}%"></div></div>
+      ` : ''}
+
+      ${s.logs.length > 0 ? `
+        <div style="margin-top:14px">
+          <label class="form-label">Activity Log</label>
+          <div class="log" id="logBox">
+            ${s.logs.map(l => `
+              <div class="log-row ${l.type==='sent'?'ok':l.type==='failed'?'err':'info'}">
+                <span class="log-time">${l.time}</span>
+                <span class="log-msg">${esc(l.msg)}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  if ($('#btnSend')) {
+    $('#btnSend').onclick = startBulkSend;
+  }
+}
+
+async function startBulkSend() {
+  const tpl = state.templates.find(t => t.id === state.activeTemplate);
+  if (!tpl) return;
+
+  const targets = state.contacts.filter(c => state.selected.has(c._id));
+  state.sending = { active:true, progress:0, total:targets.length, sent:0, failed:0, logs:[] };
+  renderSend($('#content'));
+
+  try {
+    const res = await fetch(`${API}/api/email/send-bulk`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contacts: targets,
+        subject: tpl.subject,
+        body: tpl.body,
+        delaySeconds: state.delaySeconds,
+        attachments: state.attachments
+      })
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const evt = JSON.parse(line.slice(6));
+          const now = new Date().toLocaleTimeString();
+
+          if (evt.type === 'sent') {
+            state.sending.sent = evt.sent;
+            state.sending.failed = evt.failed;
+            state.sending.progress = evt.sent + evt.failed;
+            state.sending.logs.push({ time:now, type:'sent', msg:`✓ Sent to ${evt.email}` });
+          } else if (evt.type === 'failed') {
+            state.sending.sent = evt.sent;
+            state.sending.failed = evt.failed;
+            state.sending.progress = evt.sent + evt.failed;
+            state.sending.logs.push({ time:now, type:'failed', msg:`✕ Failed: ${evt.email} — ${evt.error}` });
+          } else if (evt.type === 'complete') {
+            state.sending.active = false;
+            state.sending.logs.push({ time:now, type:'info', msg:evt.message });
+            toast('Sending complete!', 'success');
+          } else if (evt.type === 'error') {
+            state.sending.active = false;
+            state.sending.logs.push({ time:now, type:'failed', msg:evt.message });
+            toast(evt.message, 'error');
+          } else if (evt.type === 'start') {
+            state.sending.logs.push({ time:now, type:'info', msg:evt.message });
+          }
+
+          renderSend($('#content'));
+          // Auto-scroll log
+          const log = $('#logBox');
+          if (log) log.scrollTop = log.scrollHeight;
+        } catch(e) {}
+      }
+    }
+  } catch(e) {
+    state.sending.active = false;
+    toast('Connection error: ' + e.message, 'error');
+    renderSend($('#content'));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════
+(async function init() {
+  // Check if SMTP is already connected (server restart)
+  try {
+    const res = await fetch(`${API}/api/smtp/status`);
+    const data = await res.json();
+    if (data.connected) {
+      state.connected = true;
+      state.smtp.email = data.email;
+      state.smtp.host = data.host;
+    }
+  } catch(e) {}
+  render();
+})();
+</script>
+
+</body>
+</html>
